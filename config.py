@@ -35,10 +35,10 @@ SNOW_ACCOUNT   = os.getenv("SNOW_ACCOUNT",   "wiqcdyf-dz97890")
 
 SNOW_USER      = os.getenv("SNOW_USER",      "sftosnowflake")
 SNOW_PASSWORD  = os.getenv("SNOW_PASSWORD",  "Connector@1234")
-SNOW_DATABASE  = os.getenv("SNOW_DATABASE",  "SNOWFLAKE_LEARNING_DB")    # the DB to create tables in
-SNOW_SCHEMA    = os.getenv("SNOW_SCHEMA",    "MYSCHEMA")            # schema inside the DB
-SNOW_WAREHOUSE = os.getenv("SNOW_WAREHOUSE", "COMPUTE_WH")        # your compute warehouse
-SNOW_ROLE      = os.getenv("SNOW_ROLE",      "ACCOUNTADMIN")          # role with CREATE TABLE access
+SNOW_DATABASE  = os.getenv("SNOW_DATABASE",  "SNOWFLAKE_LEARNING_DB")       # the DB to create tables in
+SNOW_SCHEMA    = os.getenv("SNOW_SCHEMA",    "MYSCHEMA")              # schema inside the DB
+SNOW_WAREHOUSE = os.getenv("SNOW_WAREHOUSE", "COMPUTE_WH")         # your compute warehouse
+SNOW_ROLE      = os.getenv("SNOW_ROLE",      "ACCOUNTADMIN")            # role with CREATE TABLE access
 
 
 # ── Salesforce objects to sync (used when you run: python connector.py --all) ──
@@ -50,10 +50,38 @@ SALESFORCE_OBJECTS = [
     "Opportunity",
     "Case",
     # Add more Salesforce object names here as needed
+    # "My_Custom_Object__c",
     # Full list: https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/
 ]
 
 
+
+# ── Sync mode ──────────────────────────────────────────────────────────────────
+# "full"        → truncate + reload everything every run
+# "incremental" → only fetch records created/modified since last successful run
+ 
+SYNC_MODE = os.getenv("SYNC_MODE", "incremental")
+ 
+# ── Scheduling ─────────────────────────────────────────────────────────────────
+ 
+SCHEDULE_INTERVAL_HOURS = int(os.getenv("SCHEDULE_INTERVAL_HOURS", "6"))
+ 
+# ── Alerting ───────────────────────────────────────────────────────────────────
+ 
+ALERT_EMAIL_ENABLED  = os.getenv("ALERT_EMAIL_ENABLED",  "false").lower() == "true"
+ALERT_EMAIL_FROM     = os.getenv("ALERT_EMAIL_FROM",     "")
+ALERT_EMAIL_TO       = os.getenv("ALERT_EMAIL_TO",       "")
+ALERT_EMAIL_PASSWORD = os.getenv("ALERT_EMAIL_PASSWORD", "")   # Gmail app password
+ALERT_SMTP_HOST      = os.getenv("ALERT_SMTP_HOST",      "smtp.gmail.com")
+ALERT_SMTP_PORT      = int(os.getenv("ALERT_SMTP_PORT",  "587"))
+ 
+ALERT_SLACK_ENABLED     = os.getenv("ALERT_SLACK_ENABLED",     "false").lower() == "true"
+ALERT_SLACK_WEBHOOK_URL = os.getenv("ALERT_SLACK_WEBHOOK_URL", "")
+ 
+# ── Retry logic ────────────────────────────────────────────────────────────────
+ 
+RETRY_MAX_ATTEMPTS = int(os.getenv("RETRY_MAX_ATTEMPTS", "3"))
+RETRY_BASE_DELAY   = float(os.getenv("RETRY_BASE_DELAY", "2.0"))  # seconds, doubles each attempt
 # ── How to use environment variables instead of hardcoding ────────────────────
 #
 # On Mac/Linux, run these in your terminal before running the connector:

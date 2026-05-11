@@ -1,2 +1,10 @@
+# Core
 simple-salesforce==1.12.5
 snowflake-connector-python==3.10.0
+snowflake-connector-python[pandas]==3.10.0
+pandas>=2.0.0
+requests>=2.31.0
+
+# Phase 1 additions
+python-dotenv>=1.0.0       # loads .env file into os.environ
+APScheduler>=3.10.0        # runs sync on a schedule
