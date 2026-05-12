@@ -54,6 +54,9 @@ SALESFORCE_OBJECTS = [
     # Full list: https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/
 ]
 
+SYNC_MODE = "incremental"
+
+
 
 
 # ── Sync mode ──────────────────────────────────────────────────────────────────

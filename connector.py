@@ -3,16 +3,13 @@ connector.py
 ============
 Main entry point. Orchestrates the full sync pipeline.
 
-Now supports:
-  - Incremental sync (only new/changed records via SystemModstamp)
-  - Full refresh (truncate + reload)
-  - Retry with exponential backoff on failures
-  - Sync log written to Snowflake _SYNC_LOG table
-  - Email + Slack alerts on failure
+Modes:
+  full        → TRUNCATE table, reload all records
+  incremental → MERGE on Id (update existing + insert new)
 
 How to use:
   python connector.py --object Account
-  python connector.py --object Contact --mode full
+  python connector.py --object Account --mode full
   python connector.py --all
   python connector.py --all --mode full
 """
@@ -28,7 +25,6 @@ from alerting import send_failure_alert, send_success_summary
 from retry import with_retry
 from config import SALESFORCE_OBJECTS, SYNC_MODE
 
-# ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(message)s",
@@ -37,31 +33,31 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-# ── Core sync function ────────────────────────────────────────────────────────
-
-def sync_object(
-    sf_client:      SalesforceClient,
-    sf_object_name: str,
-    snow_client:    SnowflakeClient,
-    mode:           str = "incremental",
-):
+def sync_object(sf_client, sf_object_name, snow_client, mode="incremental"):
     """
     Full pipeline for one Salesforce object.
 
-    Incremental mode:
-      - Looks up the last successful sync time from _SYNC_LOG
-      - Only fetches records where SystemModstamp >= that time
-      - Upserts into Snowflake by merging on Id
+    full mode:
+      1. Describe schema
+      2. Map types
+      3. Create table if not exists
+      4. TRUNCATE table
+      5. Query ALL records from Salesforce
+      6. INSERT all records (write_pandas)
 
-    Full mode:
-      - Truncates the Snowflake table
-      - Reloads all records
+    incremental mode:
+      1. Describe schema
+      2. Map types
+      3. Create table if not exists
+      4. Get last sync time from _SYNC_LOG
+      5. Query only NEW/CHANGED records (SystemModstamp >= last sync)
+      6. MERGE records into Snowflake (update existing + insert new)
     """
     log.info(f"─── Syncing: {sf_object_name}  [{mode}] ───")
-    started_at = datetime.utcnow()
+    started_at  = datetime.utcnow()
     rows_loaded = 0
 
-    # ── Step 1: Get Salesforce schema ─────────────────────────────────────
+    # ── Step 1: Fetch schema ──────────────────────────────────────────────
     log.info(f"  [1/6] Fetching schema for '{sf_object_name}'...")
 
     @with_retry
@@ -71,7 +67,7 @@ def sync_object(
     sf_fields = describe()
     log.info(f"        {len(sf_fields)} fields found.")
 
-    # ── Step 2: Map field types to Snowflake ──────────────────────────────
+    # ── Step 2: Map field types ───────────────────────────────────────────
     log.info(f"  [2/6] Mapping field types...")
     snowflake_columns = []
     for field in sf_fields:
@@ -88,9 +84,9 @@ def sync_object(
     log.info(f"  [3/6] Ensuring table '{table_name}' exists...")
     snow_client.execute(create_sql)
 
-    # ── Step 4: Full refresh → truncate; Incremental → get watermark ──────
-    field_names  = [f["name"] for f in sf_fields]
-    since        = None
+    # ── Step 4: Full → truncate | Incremental → get watermark ────────────
+    field_names = [f["name"] for f in sf_fields]
+    since       = None
 
     if mode == "full":
         log.info(f"  [4/6] Full refresh — truncating '{table_name}'...")
@@ -98,11 +94,11 @@ def sync_object(
     else:
         since = snow_client.get_last_sync_time(sf_object_name)
         if since:
-            log.info(f"  [4/6] Incremental — fetching records modified since {since}")
+            log.info(f"  [4/6] Incremental — records modified since {since}")
         else:
-            log.info(f"  [4/6] Incremental — no prior sync found, doing full load")
+            log.info(f"  [4/6] Incremental — no prior sync, doing full load")
 
-    # ── Step 5: Query Salesforce records ──────────────────────────────────
+    # ── Step 5: Query Salesforce ──────────────────────────────────────────
     log.info(f"  [5/6] Querying Salesforce...")
 
     @with_retry
@@ -121,11 +117,19 @@ def sync_object(
         return
 
     # ── Step 6: Load into Snowflake ───────────────────────────────────────
-    log.info(f"  [6/6] Loading into Snowflake...")
+    if mode == "full":
+        log.info(f"  [6/6] Inserting all records into Snowflake...")
 
-    @with_retry
-    def load():
-        return snow_client.insert_records(table_name, field_names, records)
+        @with_retry
+        def load():
+            return snow_client.insert_records(table_name, field_names, records)
+
+    else:
+        log.info(f"  [6/6] Upserting records into Snowflake (MERGE on Id)...")
+
+        @with_retry
+        def load():
+            return snow_client.upsert_records(table_name, field_names, records)
 
     rows_loaded = load()
     finished_at = datetime.utcnow()
@@ -137,13 +141,8 @@ def sync_object(
     log.info(f"        ✓ {rows_loaded:,} rows loaded into '{table_name}'.")
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
-
-def run(objects: list[str], mode: str):
-    """
-    Runs the sync for a list of objects.
-    Called by main() and by scheduler.py.
-    """
+def run(objects, mode):
+    """Runs the sync for a list of objects."""
     start_time = datetime.now()
     log.info("=" * 60)
     log.info(f"  Salesforce → Snowflake  |  mode: {mode}")
@@ -189,7 +188,7 @@ def main():
     parser = argparse.ArgumentParser(description="Salesforce → Snowflake Connector")
     group  = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--object", help="Sync a single object, e.g. Account")
-    group.add_argument("--all",    action="store_true", help="Sync all objects in config.py")
+    group.add_argument("--all", action="store_true", help="Sync all objects in config.py")
     parser.add_argument(
         "--mode",
         choices=["full", "incremental"],
@@ -197,7 +196,6 @@ def main():
         help="Sync mode (default from config: %(default)s)",
     )
     args = parser.parse_args()
-
     objects = SALESFORCE_OBJECTS if args.all else [args.object]
     run(objects, mode=args.mode)
 

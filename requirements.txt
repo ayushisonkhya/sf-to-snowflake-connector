@@ -8,3 +8,5 @@ requests>=2.31.0
 # Phase 1 additions
 python-dotenv>=1.0.0       # loads .env file into os.environ
 APScheduler>=3.10.0        # runs sync on a schedule
+fastapi>=0.110.0
+uvicorn>=0.29.0
