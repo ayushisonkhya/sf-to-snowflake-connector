@@ -10,44 +10,84 @@ and loads the data — all with one command.
 ```
 sf_to_snowflake/
 │
-├── connector.py          ← Main script (run this)
-├── salesforce_client.py  ← Talks to Salesforce
-├── snowflake_client.py   ← Talks to Snowflake
-├── schema_mapper.py      ← Converts SF types → Snowflake types
-├── config.py             ← Your credentials & settings
-└── requirements.txt      ← Python libraries needed
+├── connector.py          ← Main script — orchestrates the full pipeline
+├── salesforce_client.py  ← Connects to Salesforce, fetches schema + records
+├── snowflake_client.py   ← Connects to Snowflake, creates tables, loads data
+├── schema_mapper.py      ← Translates Salesforce field types → Snowflake types
+├── alerting.py           ← Sends email/Slack alerts on failure
+├── retry.py              ← Retries failed API calls with exponential backoff
+├── scheduler.py          ← Runs sync automatically on a schedule
+├── dashboard.py          ← Web UI to monitor and trigger syncs
+├── config.py             ← All credentials and settings (never commit this!)
+├── requirements.txt      ← Python libraries to install
+└── README.md             ← This file
 ```
 
 ---
 
-## ⚙️ Setup (do this once)
+## ⚙️ Prerequisites
 
-### Step 1 — Install Python libraries
+### Step 1 — Python
 
-Open your terminal and run:
+Python 3.11 or higher
+Download from python.org
+Verify: python3 --version
 
-```bash
-pip install -r requirements.txt
-```
+### Step 2 — Salesforce Account
 
-### Step 2 — Fill in your credentials
 
-Open `config.py` and fill in:
-
-| Variable | Where to find it |
+| What | Where to get it |
 |---|---|
-| `SF_USERNAME` | Your Salesforce login email |
-| `SF_PASSWORD` | Your Salesforce password |
-| `SF_SECURITY_TOKEN` | Salesforce → Settings → Personal → Reset My Security Token |
-| `SNOW_ACCOUNT` | From your Snowflake URL: `https://ACCOUNT.snowflakecomputing.com` |
-| `SNOW_USER` | Your Snowflake username |
-| `SNOW_PASSWORD` | Your Snowflake password |
-| `SNOW_DATABASE` | The Snowflake database where tables will be created |
-| `SNOW_WAREHOUSE` | Your Snowflake compute warehouse name |
+| `Username` | Your Salesforce login email |
+| `Password` | Your Salesforce password |
+| `Security Token` | Salesforce → Avatar (top right) → Settings → Personal → Reset My Security Token → check your email |
+| `Connected App` |See setup steps below |
+| `Consumer Key` | From your Connected App → Manage Consumer Details |
+| `Consumer Secret` | From your Connected App → Manage Consumer Details |
 
 ---
+
+Creating a Connected App in Salesforce
+
+1. Go to Setup → search "Connected Apps" in Quick Find → click Create Connected App
+2. Fill in:
+     Connected App Name: SnowflakeConnector
+     Contact Email: your email
+3. Check "Enable OAuth Settings"
+4. Callback URL: https://localhost:8080/callback
+5. Selected OAuth Scopes: add Full access (full) and Perform requests at any time
+6. Click Save — wait 2–10 minutes for it to activate
+7. Go to Setup → OAuth and OpenID Connect Settings → enable "Allow OAuth Username-Password Flows"
+8. Click Manage Consumer Details to get your Consumer Key and Consumer Secret
+
+
+### Step 3 — Snowflake Account
+
+
+| What | Where to get it |
+|---|---|
+| `Account Identifier` | From Snowflake UI → bottom left avatar → Account Details → Account Identifier (e.g. WIQCDYF-DZ97890) |
+| `Username` | Your Snowflake login name (shown in Account Details → Login Name) |
+| `Password` | Your Snowflake password |
+| `Database` |An existing database where tables will be created |
+| `Schema` | An existing schema inside that database |
+| `Warehouse` | An existing compute warehouse (e.g. COMPUTE_WH) |
+| `Role` | A role with CREATE TABLE permission (e.g. ACCOUNTADMIN or SYSADMIN) |
+
 
 ## ▶️ How to Run
+
+### Step 1 — Clone the repository
+
+git clone https://github.com/YOUR_USERNAME/sf-to-snowflake-connector.git
+cd sf-to-snowflake-connector
+
+
+### Step 2 - Install python libraries
+
+```bash
+pip3 install -r requirements.txt
+```
 
 ### Sync a single object
 
@@ -63,48 +103,64 @@ python connector.py --object Opportunity
 python connector.py --all
 ```
 
----
+### Choose sync mode
 
-## 🔄 What happens when you run it?
+```bash
+python3 connector.py --object Account --mode full          # truncate + reload everything
+python3 connector.py --object Account --mode incremental   # only new/changed records
+```
+
+### How it works
 
 For each Salesforce object:
 
 ```
-Step 1 → Ask Salesforce: "What fields does Account have?"
-           (Id, Name, Phone, BillingCity, CreatedDate, ...)
+Step 1 → Fetch schema from Salesforce
+         (what fields does Account have? Id, Name, Phone, BillingCity, ...)
 
-Step 2 → Map each field type to Snowflake type
-           (string → VARCHAR, currency → NUMBER(18,2), ...)
+Step 2 → Map field types
+         (Salesforce "currency" → Snowflake "NUMBER(18,2)")
 
-Step 3 → Run CREATE TABLE IF NOT EXISTS ACCOUNT (...) in Snowflake
-           (skipped automatically if table already exists)
+Step 3 → Create table in Snowflake (if it doesn't exist)
+         (CREATE TABLE IF NOT EXISTS ACCOUNT ...)
 
-Step 4 → Query all Account records from Salesforce
+Step 4 → Full mode:  TRUNCATE the table
+         Incremental: get last successful sync time from _SYNC_LOG
 
-Step 5 → Insert all records into Snowflake in batches of 1000
-```
+Step 5 → Query records from Salesforce
+         Full:        SELECT * FROM Account
+         Incremental: SELECT * FROM Account WHERE SystemModstamp >= <last sync>
 
----
+Step 6 → Load into Snowflake
+         Full:        bulk INSERT using write_pandas
+         Incremental: MERGE (update existing rows + insert new ones)
 
-## 🧩 Adding More Objects
 
-Open `config.py` and add the object name to `SALESFORCE_OBJECTS`:
+### Web dasboard
+A real-time web UI to monitor sync status and trigger syncs manually.
 
-```python
-SALESFORCE_OBJECTS = [
-    "Account",
-    "Contact",
-    "YourCustomObject__c",   ← add custom objects like this
-]
-```
+Run the dashboard
 
----
+pip3 install fastapi uvicorn
+python3 dashboard.py
 
-## ⚠️ Common Errors
+Then open http://localhost:8000 in your browser.
 
-| Error | Fix |
+Features
+Live status card per object (rows loaded, duration, last run time)
+Run incremental or full refresh per object from the UI
+Full sync history table
+Auto-refreshes every 10 seconds
+
+
+### Tech Stack
+
+
+| Tool | Purpose |
 |---|---|
-| `INVALID_LOGIN` | Check username / password / security token in config.py |
-| `Object not found` | Check the exact API name in Salesforce (it's case-sensitive) |
-| `250001` Snowflake error | Check account name format: `xy12345.us-east-1` |
-| `Insufficient privileges` | Make sure your Snowflake role has CREATE TABLE permission |
+| `Python 3.11` | Core language |
+| `simple-salesforce` | Salesforce API client |
+| `snowflake-connector-python` | Snowflake connection |
+| `pandas + write_pandas` |Bulk data loading|
+| `FastAPI + Uvicorn` | Web dashboard |
+
