@@ -53,12 +53,14 @@ Creating a Connected App in Salesforce
 2. Fill in:
      Connected App Name: SnowflakeConnector
      Contact Email: your email
-3. Check "Enable OAuth Settings"
-4. Callback URL: https://localhost:8080/callback
-5. Selected OAuth Scopes: add Full access (full) and Perform requests at any time
-6. Click Save — wait 2–10 minutes for it to activate
-7. Go to Setup → OAuth and OpenID Connect Settings → enable "Allow OAuth Username-Password Flows"
-8. Click Manage Consumer Details to get your Consumer Key and Consumer Secret
+3. If you are not able to see create connected app then open https://orgfarm-c4f22785dd-dev-ed.develop.lightning.force.com/app/mgmt/forceconnectedapps/forceAppEdit.apexp in URL (in my case) otherwise https://YOUR-ORG-URL.develop.lightning.force.com/app/mgmt/forceconnectedapps/forceAppEdit.apexp.
+4. Check "Enable OAuth Settings"
+5. Callback URL: https://localhost:8080/callback
+6. Selected OAuth Scopes: add Full access (full) and Perform requests at any time
+7. Click Save — wait 2–10 minutes for it to activate
+8. Go to Setup → OAuth and OpenID Connect Settings → if its ON move to next steps otherwise turn it ON.
+9. Click Manage Consumer Details to get your Consumer Key and Consumer Secret.
+10. Add it to Config.py.
 
 
 ### Step 3 — Snowflake Account
