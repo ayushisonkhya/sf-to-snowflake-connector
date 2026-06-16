@@ -22,6 +22,19 @@ class SalesforceClient:
         }
         response = requests.post(token_url, data=payload)
         result   = response.json()
+
+        #    # When Salesforce receives your login request, it sends back a JSON response that looks like this:
+        #  json
+
+   # "access_token": "00D...",
+   # "instance_url": "https://orgfarm-c4f22785dd-dev-ed.develop.my.salesforce.com",
+   # "id":           "https://login.salesforce.com/id/...",
+   # "token_type":   "Bearer",
+   # "issued_at":    "1718450100000",
+   # "signature":    "abc123..."
+   # Salesforce automatically includes instance_url in this response — it's the unique URL of your specific Salesforce org.
+
+
         if "access_token" not in result:
             raise Exception(f"Salesforce login failed: {result.get('error_description', result)}")
         self.sf = Salesforce(
@@ -53,3 +66,6 @@ class SalesforceClient:
             {k: v for k, v in row.items() if k != "attributes"}
             for row in result["records"]
         ]
+    
+
+

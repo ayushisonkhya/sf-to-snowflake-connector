@@ -142,14 +142,26 @@ def sync_object(sf_client, sf_object_name, snow_client, mode="incremental"):
 
 
 def run(objects, mode):
-    """Runs the sync for a list of objects."""
     start_time = datetime.now()
     log.info("=" * 60)
     log.info(f"  Salesforce → Snowflake  |  mode: {mode}")
     log.info("=" * 60)
 
-    sf_client   = SalesforceClient()
-    snow_client = SnowflakeClient()
+    try:
+        sf_client = SalesforceClient()
+    except Exception as e:
+        log.error(f"  ✗ Salesforce connection failed: {e}")
+        for obj in objects:
+            send_failure_alert(obj, e)
+        return
+
+    try:
+        snow_client = SnowflakeClient()
+    except Exception as e:
+        log.error(f"  ✗ Snowflake connection failed: {e}")
+        for obj in objects:
+            send_failure_alert(obj, e)
+        return
 
     results = []
     for obj in objects:
@@ -182,7 +194,6 @@ def run(objects, mode):
 
     send_success_summary(results, elapsed)
     return results
-
 
 def main():
     parser = argparse.ArgumentParser(description="Salesforce → Snowflake Connector")

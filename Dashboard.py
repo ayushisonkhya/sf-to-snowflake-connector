@@ -90,6 +90,10 @@ def get_status():
             for key in ("started_at", "finished_at"):
                 if record[key]:
                     record[key] = record[key].strftime("%Y-%m-%d %H:%M:%S")
+                    # Convert Decimal to float for JSON
+            for key in ("rows_loaded", "duration_sec"):
+                if record[key] is not None:
+                    record[key] = float(record[key])
             record["is_running"] = record["object_name"] in _running_syncs
             results.append(record)
 
@@ -148,6 +152,10 @@ def get_history(limit: int = 50):
             for key in ("started_at", "finished_at"):
                 if record[key]:
                     record[key] = record[key].strftime("%Y-%m-%d %H:%M:%S")
+                    # Convert Decimal to float for JSON
+            for key in ("rows_loaded", "duration_sec"):
+                if record[key] is not None:
+                    record[key] = float(record[key])
             results.append(record)
 
         snow.close()
