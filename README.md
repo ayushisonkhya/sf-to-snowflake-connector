@@ -1,7 +1,6 @@
-# Salesforce → Snowflake Connector
+# Salesforce to Snowflake Connector
 
-Automatically reads Salesforce objects, creates matching tables in Snowflake,
-and loads the data — all with one command.
+A Python pipeline that automatically syncs data from Salesforce objects (Account, Contact, Lead, Opportunity, Case, etc.) into Snowflake tables. It supports full and incremental loads, automatic retries on failure, email/Slack alerting, scheduled runs, and a live web dashboard to monitor everything.
 
 ---
 
@@ -9,23 +8,58 @@ and loads the data — all with one command.
 
 ```
 sf_to_snowflake/
-│
-├── connector.py          ← Main script — orchestrates the full pipeline
-├── salesforce_client.py  ← Connects to Salesforce, fetches schema + records
-├── snowflake_client.py   ← Connects to Snowflake, creates tables, loads data
-├── schema_mapper.py      ← Translates Salesforce field types → Snowflake types
-├── alerting.py           ← Sends email/Slack alerts on failure
-├── retry.py              ← Retries failed API calls with exponential backoff
-├── scheduler.py          ← Runs sync automatically on a schedule
-├── dashboard.py          ← Web UI to monitor and trigger syncs
-├── config.py             ← All credentials and settings (never commit this!)
-├── requirements.txt      ← Python libraries to install
-└── README.md             ← This file
+├── config.py              # All credentials and settings (single source of truth)
+├── salesforce_client.py   # Connects to and queries Salesforce
+├── snowflake_client.py    # Connects to and loads data into Snowflake
+├── connector.py           # Main pipeline — orchestrates the full sync
+├── schema_mapper.py       # Translates Salesforce field types → Snowflake types
+├── retry.py                # Retry decorator with exponential backoff
+├── alerting.py             # Sends email/Slack alerts on failure
+├── scheduler.py            # Runs the sync automatically on a timer
+├── Dashboard.py             # Web UI to monitor sync status (FastAPI)
+├── requirements.txt        # Python dependencies
+└── README.md                # This file
 ```
 
+
+## How it works-architecture
+
+                         config.py
+                  (credentials & settings)
+                          |
+                          v
+                    connector.py
+                  (main orchestrator)
+                    /            \
+                   v              v
+        salesforce_client.py   snowflake_client.py
+        (auth + SOQL query)    (create table, insert/MERGE)
+                   \              /
+                    v            v
+                  schema_mapper.py
+              (SF field type → Snowflake type)
+                          |
+                          v
+                      retry.py
+            (wraps risky calls, retries on failure)
+                          |
+                          v
+                     alerting.py
+            (emails/Slack message if it still fails)
+
+      scheduler.py  -------calls------->  connector.py (on a timer)
+      Dashboard.py  -------calls------->  connector.py (on button click)
 ---
 
 ## ⚙️ Prerequisites
+
+Python 3.9+
+A Salesforce account with API access
+A Salesforce Connected App (for OAuth2 login) — provides Consumer Key/Secret
+A Snowflake account with a warehouse, database, and schema created
+(Optional) A Gmail account with an App Password, for email alerts
+(Optional) A Slack workspace with an Incoming Webhook URL, for Slack alerts
+
 
 ### Step 1 — Python
 
