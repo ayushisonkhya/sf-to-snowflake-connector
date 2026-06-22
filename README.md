@@ -51,37 +51,26 @@ sf_to_snowflake/
       Dashboard.py  -------calls------->  connector.py (on button click)
 ---
 
-## ⚙️ Prerequisites
-
-Python 3.9+
-A Salesforce account with API access
-A Salesforce Connected App (for OAuth2 login) — provides Consumer Key/Secret
-A Snowflake account with a warehouse, database, and schema created
-(Optional) A Gmail account with an App Password, for email alerts
-(Optional) A Slack workspace with an Incoming Webhook URL, for Slack alerts
+## Prerequisites
 
 
-### Step 1 — Python
+- Python 3.9+  
+- A Salesforce account with API access  
+- A Salesforce Connected App (for OAuth2 login) — provides Consumer Key/Secret  
+- A Snowflake account with a warehouse, database, and schema created  
+- (Optional) A Gmail account with an App Password, for email alerts  
+- (Optional) A Slack workspace with an Incoming Webhook URL, for Slack alerts  
 
-Python 3.11 or higher
-Download from python.org
-Verify: python3 --version
 
-### Step 2 — Salesforce Account
+### Set up
+
+## 1.  Clone the repo and install dependencies
+      git clone https://github.com/ayushisonkhya/sf-to-snowflake-connector
+      cd sf-to-snowflake-connector
+      pip install -r requirements.txt
 
 
-| What | Where to get it |
-|---|---|
-| `Username` | Your Salesforce login email |
-| `Password` | Your Salesforce password |
-| `Security Token` | Salesforce → Avatar (top right) → Settings → Personal → Reset My Security Token → check your email |
-| `Connected App` |See setup steps below |
-| `Consumer Key` | From your Connected App → Manage Consumer Details |
-| `Consumer Secret` | From your Connected App → Manage Consumer Details |
-
----
-
-Creating a Connected App in Salesforce
+## 2.  Salesforce Account
 
 1. Go to Setup → search "Connected Apps" in Quick Find → click Create Connected App
 2. Fill in:
@@ -96,8 +85,20 @@ Creating a Connected App in Salesforce
 9. Click Manage Consumer Details to get your Consumer Key and Consumer Secret.
 10. Add it to Config.py.
 
+## 3. Fill in config.py
 
-### Step 3 — Snowflake Account
+| What | Where to get it |
+|---|---|
+| `Username` | Your Salesforce login email |
+| `Password` | Your Salesforce password |
+| `Security Token` | Salesforce → Avatar (top right) → Settings → Personal → Reset My Security Token → check your email |
+| `Domain` | login for production<br>test for sandbox |
+| `Consumer Key` | From your Connected App → Manage Consumer Details |
+| `Consumer Secret` | From your Connected App → Manage Consumer Details |
+
+
+
+## 4. Snowflake Account
 
 
 | What | Where to get it |
@@ -111,46 +112,28 @@ Creating a Connected App in Salesforce
 | `Role` | A role with CREATE TABLE permission (e.g. ACCOUNTADMIN or SYSADMIN) |
 
 
-## ▶️ How to Run
-
-### Step 1 — Clone the repository
-
-git clone https://github.com/YOUR_USERNAME/sf-to-snowflake-connector.git
-cd sf-to-snowflake-connector
-
-
-### Step 2 - Install python libraries
-
-```bash
-pip3 install -r requirements.txt
-```
+## Running the connector
 
 ### Sync a single object
 
-```bash
-python connector.py --object Account
-python connector.py --object Contact
-python connector.py --object Opportunity
-```
+python connector.py --object Account  
+python connector.py --object Contact  
+python connector.py --object Opportunity  
+
 
 ### Sync all objects listed in config.py
 
-```bash
-python connector.py --all
-```
+python connector.py --all  
 
 ### Choose sync mode
 
-```bash
-python3 connector.py --object Account --mode full          # truncate + reload everything
-python3 connector.py --object Account --mode incremental   # only new/changed records
-```
+python3 connector.py --object Account --mode full    
+python3 connector.py --object Account --mode incremental
 
 ### How it works
 
 For each Salesforce object:
 
-```
 Step 1 → Fetch schema from Salesforce
          (what fields does Account have? Id, Name, Phone, BillingCity, ...)
 
@@ -171,6 +154,27 @@ Step 6 → Load into Snowflake
          Full:        bulk INSERT using write_pandas
          Incremental: MERGE (update existing rows + insert new ones)
 
+### Automatic retries
+Any Salesforce or Snowflake call wrapped in @with_retry automatically retries up to RETRY_MAX_ATTEMPTS (default 3) times, with exponential backoff (RETRY_BASE_DELAY doubling each attempt — e.g. 2s, 4s, 8s) before giving up.
+
+@with_retry  
+def fetch():  
+    return sf_client.query_all(...)  
+
+If all attempts fail, the exception is raised, caught by connector.py, logged as FAILED in _SYNC_LOG, and an alert is sent.
+
+### Alerting (email / Slack)
+
+Disabled by default. Enable in config.py:
+
+ALERT_EMAIL_ENABLED  = True  
+ALERT_EMAIL_FROM     = "your.gmail@gmail.com"  
+ALERT_EMAIL_TO       = "your.gmail@gmail.com"  
+ALERT_EMAIL_PASSWORD = "your-16-character-gmail-app-password"  
+
+
+Gmail requires an App Password, not your normal password. Generate one at myaccount.google.com/apppasswords (requires 2-Step Verification to be turned on first).
+
 
 ### Web dasboard
 A real-time web UI to monitor sync status and trigger syncs manually.
@@ -187,6 +191,22 @@ Live status card per object (rows loaded, duration, last run time)
 Run incremental or full refresh per object from the UI
 Full sync history table
 Auto-refreshes every 10 seconds
+
+
+### Adding a new Salesforce object to sync
+
+No code changes needed — just add it to the list in config.py:  
+
+SALESFORCE_OBJECTS = [  
+    "Account",  
+    "Contact",  
+    "Lead",  
+    "Opportunity",  
+    "Case",  
+    "My_Custom_Object__c",    # custom objects end in __c  
+]  
+
+The connector automatically describes its schema, maps its field types, creates its table, and syncs it — the same as any built-in object.
 
 
 ### Tech Stack
