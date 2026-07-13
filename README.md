@@ -13,12 +13,12 @@ sf_to_snowflake/
 ├── snowflake_client.py    # Connects to and loads data into Snowflake
 ├── connector.py           # Main pipeline — orchestrates the full sync
 ├── schema_mapper.py       # Translates Salesforce field types → Snowflake types
-├── retry.py                # Retry decorator with exponential backoff
-├── alerting.py             # Sends email/Slack alerts on failure
-├── scheduler.py            # Runs the sync automatically on a timer
-├── Dashboard.py             # Web UI to monitor sync status (FastAPI)
-├── requirements.txt        # Python dependencies
-└── README.md                # This file
+├── retry.py               # Retry decorator with exponential backoff
+├── alerting.py            # Sends email/Slack alerts on failure
+├── scheduler.py           # Runs the sync automatically on a timer
+├── Dashboard.py           # Web UI to monitor sync status (FastAPI)
+├── requirements.txt       # Python dependencies
+└── README.md              # This file
 ```
 
 
