@@ -51,8 +51,22 @@ sf_to_snowflake/
       Dashboard.py  -------calls------->  connector.py (on button click)
 ---
 
-## Prerequisites
+## Step 0 - Create a Salesforce Developer Edition Account
 
+1. Go to developer.salesforce.com/signup
+2. Fill in the form:
+     First Name / Last Name: your name
+     Email: your work or personal email
+     Role: Developer
+     Company: your company name
+     Username: must be in email format but does not need to be a real email address
+3. Click "Sign me up"
+4. Check your email → click "Verify Account"
+5. Set your password — save it somewhere safe
+6. You are in! Your org URL will look like:
+      https://orgfarm-XXXXXXXX.develop.lightning.force.com
+
+## Prerequisites
 
 - Python 3.9+  
 - A Salesforce account with API access  
