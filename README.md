@@ -51,7 +51,18 @@ sf_to_snowflake/
       Dashboard.py  -------calls------->  connector.py (on button click)
 ---
 
-## Step 0 - Create a Salesforce Developer Edition Account
+## Prerequisites
+
+- Python 3.9+  
+- A Salesforce account with API access  
+- A Salesforce Connected App (for OAuth2 login) — provides Consumer Key/Secret  
+- A Snowflake account with a warehouse, database, and schema created  
+- (Optional) A Gmail account with an App Password, for email alerts  
+- (Optional) A Slack workspace with an Incoming Webhook URL, for Slack alerts  
+
+### Set up
+
+## Step 0. Create a Salesforce Developer Edition Account
 
 1. Go to developer.salesforce.com/signup
 2. Fill in the form:
@@ -66,25 +77,13 @@ sf_to_snowflake/
 6. You are in! Your org URL will look like:
       https://orgfarm-XXXXXXXX.develop.lightning.force.com
 
-## Prerequisites
-
-- Python 3.9+  
-- A Salesforce account with API access  
-- A Salesforce Connected App (for OAuth2 login) — provides Consumer Key/Secret  
-- A Snowflake account with a warehouse, database, and schema created  
-- (Optional) A Gmail account with an App Password, for email alerts  
-- (Optional) A Slack workspace with an Incoming Webhook URL, for Slack alerts  
-
-
-### Set up
-
-## 1.  Clone the repo and install dependencies
+## Step 1. Clone the repo and install dependencies
       git clone https://github.com/ayushisonkhya/sf-to-snowflake-connector
       cd sf-to-snowflake-connector
       pip install -r requirements.txt
 
 
-## 2.  Salesforce Account
+## Step 2. Salesforce Account
 
 1. Go to Setup → search "Connected Apps" in Quick Find → click Create Connected App
 2. Fill in:
@@ -99,7 +98,7 @@ sf_to_snowflake/
 9. Click Manage Consumer Details to get your Consumer Key and Consumer Secret.
 10. Add it to Config.py.
 
-## 3. Fill in config.py
+## Step 3. Fill in config.py
 
 | What | Where to get it |
 |---|---|
@@ -112,7 +111,7 @@ sf_to_snowflake/
 
 
 
-## 4. Snowflake Account
+## Step 4. Snowflake Account
 
 
 | What | Where to get it |
