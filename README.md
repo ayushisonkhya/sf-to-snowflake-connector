@@ -60,7 +60,7 @@ sf_to_snowflake/
 - (Optional) A Gmail account with an App Password, for email alerts  
 - (Optional) A Slack workspace with an Incoming Webhook URL, for Slack alerts  
 
-### Set up
+### Set up-
 
 ## Step 0. Create a Salesforce Developer Edition Account
 
