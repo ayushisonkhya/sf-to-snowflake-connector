@@ -7,8 +7,8 @@ How to use:
   python scheduler.py          ← runs forever, syncing every N hours
   python scheduler.py --now    ← runs one sync immediately, then starts schedule
 
-Interval is set in .env:
-  SCHEDULE_INTERVAL_HOURS=6
+Interval is set in config.py:
+  SCHEDULE_INTERVAL_HOURS=1
 
 Install dependency:
   pip install apscheduler
@@ -58,15 +58,16 @@ def main():
 
     scheduler = BlockingScheduler(timezone="UTC")
     scheduler.add_job(
-        func    = scheduled_sync,
-        trigger = IntervalTrigger(hours=SCHEDULE_INTERVAL_HOURS),
-        id      = "sf_snowflake_sync",
-        name    = "Salesforce → Snowflake sync",
+        func     = scheduled_sync,
+        trigger  = IntervalTrigger(hours=SCHEDULE_INTERVAL_HOURS),
+        id       = "sf_snowflake_sync",
+        name     = "Salesforce → Snowflake sync",
         replace_existing = True,
     )
 
-    next_run = scheduler.get_jobs()[0].next_run_time
-    log.info(f"  Next scheduled run: {next_run}")
+    jobs = scheduler.get_jobs()
+    if jobs:
+        log.info(f"  Next scheduled run: in {SCHEDULE_INTERVAL_HOURS} hour(s)")
     log.info("  Press Ctrl+C to stop.\n")
 
     try:

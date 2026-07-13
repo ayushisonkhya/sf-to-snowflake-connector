@@ -44,11 +44,11 @@ SNOW_ROLE      = os.getenv("SNOW_ROLE",      "ACCOUNTADMIN")            # role w
 # ── Salesforce objects to sync (used when you run: python connector.py --all) ──
 
 SALESFORCE_OBJECTS = [
-    "Account",
-    "Contact",
-    "Lead",
-    "Opportunity",
-    "Case",
+    "Account"
+   # "Contact",
+   # "Lead",
+   # "Opportunity",
+   # "Case",
     # Add more Salesforce object names here as needed
     # "My_Custom_Object__c",
     # Full list: https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/
@@ -67,7 +67,7 @@ SYNC_MODE = os.getenv("SYNC_MODE", "incremental")
  
 # ── Scheduling ─────────────────────────────────────────────────────────────────
  
-SCHEDULE_INTERVAL_HOURS = int(os.getenv("SCHEDULE_INTERVAL_HOURS", "6"))
+SCHEDULE_INTERVAL_HOURS = int(os.getenv("SCHEDULE_INTERVAL_HOURS", "1"))
  
 # ── Alerting ───────────────────────────────────────────────────────────────────
  
