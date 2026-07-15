@@ -8,7 +8,9 @@ A Python pipeline that automatically syncs data from Salesforce objects (Account
 
 ```
 sf_to_snowflake/
-├── config.py              # All credentials and settings (single source of truth)
+├── config.py              # Loads settings from .env — no real credentials here
+├── .env                   # Your real credentials (git-ignored, NOT committed)
+├── .env.example           # Template showing required variable names, no real values (committed)
 ├── salesforce_client.py   # Connects to and queries Salesforce
 ├── snowflake_client.py    # Connects to and loads data into Snowflake
 ├── connector.py           # Main pipeline — orchestrates the full sync
@@ -96,33 +98,37 @@ sf_to_snowflake/
 7. Click Save — wait 2–10 minutes for it to activate
 8. Go to Setup → OAuth and OpenID Connect Settings → if its ON move to next steps otherwise turn it ON.
 9. Click Manage Consumer Details to get your Consumer Key and Consumer Secret.
-10. Add it to Config.py.
+10. Add it to .env file.
 
-## Step 3. Fill in config.py
+## Step 3.  Set up your .env file
+## Salesforce
 
+Credentials are never stored in config.py — they are loaded from a local .env file that you create yourself and never commit to git.
+
+Copy the template from .env.example and fill in the real values:
 | What | Where to get it |
 |---|---|
-| `Username` | Your Salesforce login email |
-| `Password` | Your Salesforce password |
-| `Security Token` | Salesforce → Avatar (top right) → Settings → Personal → Reset My Security Token → check your email |
-| `Domain` | login for production<br>test for sandbox |
-| `Consumer Key` | From your Connected App → Manage Consumer Details |
-| `Consumer Secret` | From your Connected App → Manage Consumer Details |
+| `SF_USERNAME` | Your Salesforce login email |
+| `SF_PASSWORD` | Your Salesforce password |
+| `SF_SECURITY_TOKEN` | Salesforce → Avatar (top right) → Settings → Personal → Reset My Security Token → check your email |
+| `SF_DOMAIN` | login for production<br>test for sandbox |
+| `SF_CONSUMER_KEY` | From your Connected App → Manage Consumer Details |
+| `SF_CONSUMER_SECRET` | From your Connected App → Manage Consumer Details |
 
+⚠️ .env is git-ignored and must never be committed. Each person running this pipeline creates their own .env with their own credentials.
 
+## Snowflake
 
-## Step 4. Snowflake Account
-
-
+Add these to the same .env file:
 | What | Where to get it |
 |---|---|
-| `Account Identifier` | From Snowflake UI → bottom left avatar → Account Details → Account Identifier (e.g. WIQCDYF-DZ97890) |
-| `Username` | Your Snowflake login name (shown in Account Details → Login Name) |
-| `Password` | Your Snowflake password |
-| `Database` |An existing database where tables will be created |
-| `Schema` | An existing schema inside that database |
-| `Warehouse` | An existing compute warehouse (e.g. COMPUTE_WH) |
-| `Role` | A role with CREATE TABLE permission (e.g. ACCOUNTADMIN or SYSADMIN) |
+| `SNOW_ACCOUNT` | From Snowflake UI → bottom left avatar → Account Details → Account Identifier (e.g. WIQCDYF-DZ97890) |
+| `SNOW_USER` | Your Snowflake login name (shown in Account Details → Login Name) |
+| `SNOW_PASSWORD` | Your Snowflake password |
+| `SNOW_DATABASE` |An existing database where tables will be created |
+| `SNOW_SCHEMA` | An existing schema inside that database |
+| `SNOW_WAREHOUSE | An existing compute warehouse (e.g. COMPUTE_WH) |
+| `SNOW_ROLE` | A role with CREATE TABLE permission (e.g. ACCOUNTADMIN or SYSADMIN) |
 
 
 ## Running the connector
@@ -178,7 +184,7 @@ If all attempts fail, the exception is raised, caught by connector.py, logged as
 
 ### Alerting (email / Slack)
 
-Disabled by default. Enable in config.py:
+Disabled by default. Enable in by setting these in your .env file:
 
 ALERT_EMAIL_ENABLED  = True  
 ALERT_EMAIL_FROM     = "your.gmail@gmail.com"  
