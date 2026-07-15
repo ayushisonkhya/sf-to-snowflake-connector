@@ -127,7 +127,7 @@ Add these to the same .env file:
 | `SNOW_PASSWORD` | Your Snowflake password |
 | `SNOW_DATABASE` |An existing database where tables will be created |
 | `SNOW_SCHEMA` | An existing schema inside that database |
-| `SNOW_WAREHOUSE | An existing compute warehouse (e.g. COMPUTE_WH) |
+| `SNOW_WAREHOUSE' | An existing compute warehouse (e.g. COMPUTE_WH) |
 | `SNOW_ROLE` | A role with CREATE TABLE permission (e.g. ACCOUNTADMIN or SYSADMIN) |
 
 
