@@ -1,7 +1,7 @@
 """
 config.py
 =========
-All your credentials and settings live here.
+All your credentials and settings live here. test test
 
 This file is SAFE to commit to Git — it contains NO real passwords,
 only the names of environment variables to read at runtime.
