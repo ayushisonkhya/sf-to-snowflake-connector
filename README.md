@@ -80,7 +80,7 @@ sf_to_snowflake/
       https://orgfarm-XXXXXXXX.develop.lightning.force.com
 
 ## Step 1. Clone the repo and install dependencies
-      git clone https://github.com/ayushisonkhya/sf-to-snowflake-connector
+      git clone https://github.com/asonkhya/sf-to-snowflake-connector
       cd sf-to-snowflake-connector
       pip install -r requirements.txt
 
